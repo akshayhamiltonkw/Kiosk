@@ -28,7 +28,7 @@ app.use("/kiosk", getTableGroups);
 app.use("/kiosk", createUniqID);
 app.use("/kiosk", getRestaurantStatistic);
 
-const port = process.env.PORT;
+const port = process.env.PORT || 5000;
 
 app.listen(process.env.PORT || port, (err) => {
   if (err) console.log("Unable to start the server!");
