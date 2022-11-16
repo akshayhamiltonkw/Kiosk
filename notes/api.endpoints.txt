@@ -1,0 +1,590 @@
+
+// improve website speed 
+//browser caching 
+//page caching
+//object caching
+
+
+request headers
+res.send(req.rawHeaders)
+
+
+kiosk
+o	User:
+1.	View the restaurant’s waiting list
+•	user will be able to see the number of guests in Line already in both inside and outside area and estimated time.
+2.	Get in line
+•	user cannot get in line if the queue of the branch is 0. (The first one in queue must be entered by the HOST not from the user nor the Kiosk)
+•	User can get in line by Pressing Get in line Button
+•	User will enter the details like (number of guests, Seating area, area code for their phone number, their phone number, name, gender and notes)
+
+3.	Track turn
+•	User can track their Turn by checking by the kiosk or with their phone number by scanning QR code.
+
+4.	View food menu
+•	User can view the restaurant menu without getting in line. So, Kiosk can be used as a menu.
+
+
+
+
+
+//AppSettings="AppSettings"
+CreateUniqID="CreateUniqID"
+Loginkiosk="Loginkiosk"
+GetTableGroups="GetTableGroups"
+GetCountries="GetCountries"
+GetInLineHost="GetInLineHost"
+GetCustomerByPhone="GetCustomerByPhone"
+GetRestaurantStatistic="GetRestaurantStatistic"
+GetQueueByPhoneAndRest="GetQueueByPhoneAndRest"
+GetAllCountries="GetAllCountries"
+
+//CreateUniqID="CreateUniqID"
+Dim access = Utilities.CreateUniqID()
+        Dim tokenObj As New AccessTokenObj() With {
+                .UserID = userID, .Channel = GetDeviceType(), .Status = AccessTokenObj.TokenStatus.Active,
+                .AccessToken = access, .Type = type, .Uuid = If(GetUniqID() = "", GetAppID(), GetUniqID())
+                    }
+
+
+        tokenObj.ExpireyAllOldSessions(userID)
+
+        tokenObj.Insert()
+
+
+        Return access
+    End Function
+
+    <OperationContract()>
+    <WebInvoke(Method:="POST", BodyStyle:=WebMessageBodyStyle.WrappedRequest, ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function CreateUniqID() As BaseResponse
+        Dim result As New BaseResponse
+
+        Try
+            If Not result.Authorized() Then Return result
+            result.Success = True
+            result.Message = Utilities.CreateUniqID()
+
+        Catch ex As Exception
+
+        End Try
+
+        Return result
+    End Function
+
+
+//Loginkiosk="Loginkiosk"
+<OperationContract()>
+    <WebInvoke(Method:="POST", BodyStyle:=WebMessageBodyStyle.WrappedRequest, ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function LoginKiosk(ByVal restId As Integer, ByVal userName As String, ByVal password As String) As RestLoginResponse
+        Dim result As New RestLoginResponse
+        Dim loginUser As New LoginUsers
+        Dim lang = GetLang()
+        Try
+            If Not result.Authorized() Then Return result
+
+            If userName <> "" And password <> "" And restId <> 0 Then
+                Dim checkupsatatus = loginUser.Login(restId, userName, password, False)
+                'MsgBox(checkupsatatus.Id)
+                If checkupsatatus.Id <> -1 Then
+                    Dim userObj = loginUser.loginUser(restId, userName, password, False)
+                    If Not userObj.GetRoulNoAction(GroupRoulObject.rKey.can_access) Then
+                        userObj.LogOut()
+                        result.Message = GetError(ErrorsType.User_No_Permission, lang)
+                        Return result
+                    End If
+
+                    If userObj.GetRestaurant.IsParent Then
+                        userObj.LogOut()
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.User_No_Permission, lang)
+                        Return result
+                    End If
+
+                    If Not userObj.GetRestaurant.isActiveAccount Or Not userObj.isActive Then
+                        userObj.LogOut()
+                        result.Message = GetError(ErrorsType.User_Account_NotActive, lang)
+                        Return result
+                    End If
+
+                    If userObj.groupID = DefaultGroups.Rest_Employ Or userObj.groupID = DefaultGroups.Branch_Manager Then
+                        result.Success = True
+                        result.Message = GetError(ErrorsType.Success, lang)
+
+                        'Success
+                        result.SetData(userObj)
+                        result.AccessToken = CreateAccessToken(userObj.Id, AccessToken.User)
+                        Return result
+                    Else
+                        userObj.LogOut()
+                        result.Message = GetError(ErrorsType.User_Account_NotActive, lang)
+                        Return result
+
+                    End If
+
+                Else
+                    result.Message = GetError(ErrorsType.User_Wrrong_Aceess, lang)
+                End If
+
+            Else
+                result.Message = GetError(ErrorsType.User_Wrrong_Aceess, lang)
+            End If
+
+        Catch ex As Exception
+
+        End Try
+
+        Return result
+    End Function
+
+
+
+//GetAllCountries="GetAllCountries"
+ <OperationContract()>
+    <WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function GetAllCountries() As CountriesResponse
+        Dim result As New CountriesResponse
+        Try
+            If Not result.Authorized() Then Return result
+            result.ListOfData = DataHelper.GetListOfAllCountries()
+            result.Success = result.ListOfData.Count > 0
+
+        Catch ex As Exception
+
+        End Try
+
+        Return result
+    End Function
+
+GetQueueByPhoneAndRest="GetQueueByPhoneAndRest"
+  <OperationContract()>
+    <WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function GetQueueByPhoneAndRest(ByVal phone As String, ByVal country As Integer) As CurrentQueueResponse
+        Dim result As New CurrentQueueResponse
+        Dim lang = GetLang()
+        Try
+
+            If Not result.Authorized Then Return result
+
+            Dim userObj = GetUserObj()
+            If userObj.Id <= 0 Then
+                Return result
+            End If
+            If Not IsDigits(phone) Then
+                result.Message = GetError(ErrorsType.Client_InvalidPhone, lang)
+                result.Success = False
+                Return result
+            End If
+
+            Dim clientObj = DataHelper.getClientByPhoneNumber(phone, country)
+
+
+            If clientObj.cId > 0 Then
+                Dim currentObj = clientObj.GetCurrentQueueWithCanceled(userObj.branchId)
+
+                If (clientObj.id = 4 Or clientObj.id = 1015) And Not currentObj.IsPaid And currentObj.id > 0 Then
+                    'Validate is pad queue
+                    result.Message = "You have to upgrade your turn"
+                    result.Success = False
+                Else
+
+                    If currentObj.id > 0 Then
+                        result.Queue = currentObj
+                        result.Success = currentObj.id > 0
+                    Else
+                        result.Message = GetError(ErrorsType.Kiosk_Not_In_Line, lang)
+                        result.Success = False
+                    End If
+
+
+                End If
+
+
+
+            Else
+                ' HttpContext.Current.Response.Write(clientObj.cId & " id")
+            End If
+
+            ' End If
+
+        Catch ex As Exception
+            'MsgBox(ex.ToString)
+            '   HttpContext.Current.Response.Write(ex.ToString)
+        End Try
+
+        Return result
+    End Function
+
+
+//GetRestaurantStatistic="GetRestaurantStatistic"
+ <OperationContract()>
+    <WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function GetRestaurantStatistic() As RestaurantQueueStatisticResponse
+        Dim apiResp As New RestaurantQueueStatisticResponse
+        Try
+
+            If Not apiResp.Authorized() Then Return apiResp
+
+            Dim userObj = GetUserObj()
+            Dim restObj = userObj.GetRestaurant()
+            Dim result As New RestaurantQueueStatistic(restObj)
+
+            apiResp.Statistic = result
+            apiResp.Success = result.Id > 0
+
+        Catch ex As Exception
+
+        End Try
+        Return apiResp
+    End Function
+
+
+
+//GetCustomerByPhone="GetCustomerByPhone"
+ <OperationContract()>
+    <WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function GetCustomerByPhone(ByVal phone As String, ByVal country As Integer) As CustomerResponse
+        Dim result As New CustomerResponse
+        Try
+
+            If Not result.Authorized Then Return result
+            If phone = "" Then Return result
+
+            If phone <> "" Then phone = phone.Replace("'", "")
+
+            Dim clientObj = DataHelper.getClientByPhoneNumber(phone, country)
+            result.Customer = clientObj
+            result.Success = clientObj.id > 0
+        Catch ex As Exception
+        End Try
+
+        Return result
+    End Function
+
+
+    
+//GetInLineHost="GetInLineHost"
+  <OperationContract()>
+    <WebInvoke(Method:="POST", BodyStyle:=WebMessageBodyStyle.WrappedRequest, ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function GetInLineHost(ByVal phone As String,
+                                    ByVal groupSize As Integer,
+                                    ByVal position As TablePositions,
+                                    ByVal country As Integer,
+                                     ByVal note As String,
+                                  ByVal channel As CreatedMethod, ByVal name As String,
+                                  ByVal gender As ClientObject.ClientGender,
+                                  Optional ByVal isKiosk As Boolean = False) As GetInLineResponse
+
+        ' Dim result As New JSONResultString
+        Dim result As New GetInLineResponse
+        Dim lang = GetLang()
+        Dim device = GetDeviceType()
+        Try
+
+            If Not result.Authorized() Then Return result
+
+
+            If position < 0 Then
+                result.Message = "Invalid seat area"
+                Return result
+            End If
+
+            Dim getData As New GetDataClass
+            Dim userObj = GetUserObj()
+            Dim restObj = userObj.GetRestaurant()
+
+            If restObj.id <= 0 Then
+                result.Message = "You have to login"
+                Return result
+            End If
+
+
+            If ((position = TablePositions.inside And restObj.InsideActive = False) Or (position = TablePositions.outside And restObj.OutsideActive = False) Or (position = TablePositions.any And (restObj.InsideActive = False And restObj.OutsideActive = False))) Then
+                result.Message = "Selected area is closed, cannot add the guest to the queue."
+                Return result
+            End If
+
+
+            Dim countryObj As New CountryObject(country)
+            RemoveZeroFromPhone(phone)
+            If Not countryObj.ValidPhoneNumber(phone) Then
+                result.Message = GetError(ErrorsType.User_Wrong_Phone, lang)
+                Return result
+            End If
+
+            Dim clientObj = getData.getClientByPhoneNumber(phone, country)
+
+            If clientObj.id <= 0 Then
+
+                'If country = 1 Then
+                '    If phone.Length < 8 Then
+                '        result.Message = GetError(ErrorsType.User_Wrong_Phone)
+                '        Return result
+                '    End If
+                'End If
+
+                If name = "" Or name.Length < 2 Then
+                    result.Message = GetError(ErrorsType.User_Enter_name, lang)
+                    Return result
+                Else
+                    clientObj = New ClientObject With {
+                        .phone = phone,
+                        .name = name,
+                        .gender = gender,
+                        .country = country,
+                        .createdMethod = CreatedBy.Restaurant,
+                        .userId = userObj.Id,
+                        .restId = userObj.branchId
+                    }
+
+                    If Not clientObj.IsValidName Then
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Client_Invalid_Name, lang)
+                        Return result
+                    End If
+
+
+                    If clientObj.InserClient() Then
+                        clientObj = getData.getClientByPhoneNumber(phone, country)
+                    Else
+                        result.Message = GetError(ErrorsType.User_cant_create, lang)
+                    End If
+                End If
+
+
+
+            End If
+
+            Dim isFull As Boolean = IIf(isKiosk, restObj.KioskIsFull, restObj.isFull)
+            Dim insideFull As Boolean = IIf(isKiosk, restObj.KioskInsideFull, restObj.InsideFull)
+            Dim outsideFull As Boolean = IIf(isKiosk, restObj.KioskOutsideFull, restObj.OutsideFull)
+
+            If clientObj.isActive Then
+                If restObj.isOpen And isFull = False Then
+
+
+                    Dim currentQ = clientObj.GetCurrentQClient()
+                    If currentQ.id > 0 Then
+                        If currentQ.CurrentStatus = QueueFinalStatus.Confirmed And currentQ.restID = restObj.id Then
+                            'result.Success = True
+                            result.Queue = currentQ
+                            result.Success = currentQ.id > 0
+                            Return result
+                        End If
+
+                        'You have Q
+                        'result.Success = False
+                        'Dim msgError As String = GetError(ErrorsType.client_have_q, lang)
+                        'Dim customRest = getData.getCustomRestObj(restObj)
+                        'msgError = msgError.Replace("%restName%", customRest.nameEn)
+                        'result.Message = msgError
+                        'Return result
+                    End If
+
+                    Dim canAdd As Boolean = False
+                    If position = TablePositions.inside And restObj.InsideActive = False Then
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Area_Closed, lang)
+                        Return result
+                    ElseIf position = TablePositions.outside And restObj.OutsideActive = False Then
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Area_Closed, lang)
+                        Return result
+                    ElseIf position = TablePositions.any And (restObj.InsideActive = False Or restObj.OutsideActive = False) Then
+
+                        If restObj.InsideActive = False Then
+                            position = TablePositions.outside
+                        Else
+                            position = TablePositions.inside
+                        End If
+                        canAdd = True
+                    Else
+                        canAdd = True
+                    End If
+
+
+                    If position = TablePositions.inside And insideFull Then
+
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Area_Closed, lang)
+                        Return result
+                    ElseIf position = TablePositions.outside And outsideFull Then
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Area_Closed, lang)
+                        Return result
+                    ElseIf position = TablePositions.any And (insideFull Or outsideFull) Then
+
+                        If restObj.InsideActive = False Then
+                            position = TablePositions.outside
+                        Else
+                            position = TablePositions.inside
+                        End If
+                        canAdd = True
+                    Else
+                        canAdd = True
+                    End If
+
+
+
+                    If canAdd Then
+
+                        If position < 0 Then
+                            result.Success = False
+                            result.Message = "Invalid seat area"
+                            Return result
+                        End If
+
+                        If position = TablePositions.any Then
+                            'Inside or Outside Not Actie
+
+                            If restObj.InsideActive = False Or insideFull Then
+                                position = TablePositions.outside
+                            ElseIf restObj.OutsideActive = False Or outsideFull Then
+                                position = TablePositions.inside
+                            End If
+
+
+                        End If
+
+                        Dim didPositionChanged As Boolean = False
+                        If position = TablePositions.inside Then
+                            'Inside
+                            If groupSize > restObj.maxInside Then
+                                result.Success = False
+                                result.Message = GetError(ErrorsType.Q_MaxTableNumbera, lang)
+
+                                Return result
+                            End If
+
+                        ElseIf position = TablePositions.outside Then
+                            'Outside
+                            If groupSize > restObj.maxOutside Then
+                                result.Success = False
+                                result.Message = GetError(ErrorsType.Q_MaxTableNumbera, lang)
+
+                                Return result
+                            End If
+                        ElseIf position = TablePositions.any Then
+                            'Any
+                            If groupSize > restObj.maxOutside And groupSize > restObj.maxInside Then
+                                result.Success = False
+                                result.Message = GetError(ErrorsType.Q_MaxTableNumbera, lang)
+                                Return result
+                            ElseIf groupSize > restObj.maxInside Then
+                                'OutSide
+                                position = TablePositions.outside
+                                didPositionChanged = True
+                            ElseIf groupSize > restObj.maxOutside Then
+                                'Inside
+                                position = TablePositions.inside
+                                didPositionChanged = True
+                            End If
+
+
+                        End If
+
+
+
+                        Dim resp = AddQRest(userObj.Id, clientObj.cId, restObj.id, groupSize,
+                                          groupSize, position, note, channel)
+                        result.Success = resp.Success
+                        result.Message = resp.Message
+                        If result.Success Then
+                            Dim currentObj = clientObj.GetCurrentQClient(restObj.id)
+                            result.Queue = currentObj
+                            result.Success = currentObj.id > 0
+                        End If
+
+                    Else
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Q_Cant_Create, lang)
+                    End If
+
+
+
+
+
+
+
+                    ' End If
+
+
+
+
+                Else
+                    If restObj.isOpen = False Then
+                        'Close
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Client_rest_close, lang)
+                        ' HttpContext.Current.Response.Write("Close")
+                    ElseIf isFull Then
+                        'Full
+                        result.Success = False
+                        result.Message = GetError(ErrorsType.Client_rest_full, lang)
+                        '  HttpContext.Current.Response.Write("Full")
+                    Else
+                        '   HttpContext.Current.Response.Write(restObj.isFull & " General")
+                    End If
+
+                End If
+
+
+            Else
+                result.Message = GetError(ErrorsType.Client_Account_NotActive, lang)
+            End If
+
+
+
+
+
+        Catch ex As Exception
+            result.Success = False
+            result.Message = GetError(ErrorsType.Q_Cant_Create, lang)
+        End Try
+
+        Return result
+    End Function
+
+
+
+
+
+//GetCountries="GetCountries"
+ <OperationContract()>
+    <WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+    Public Function GetCountries() As CountriesResponse
+        Dim result As New CountriesResponse
+        Try
+            If Not result.Authorized() Then Return result
+            result.ListOfData = DataHelper.GetListOfActiveCountries()
+            result.Success = result.ListOfData.Count > 0
+
+        Catch ex As Exception
+
+        End Try
+
+        Return result
+    End Function
+
+
+
+
+
+//GetTableGroups="GetTableGroups"
+<OperationContract()>
+<WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
+Public Function GetTableGroups() As TablesGroupResponse
+    Dim result As New TablesGroupResponse
+    Try
+        If Not result.Authorized() Then Return result
+
+        Dim getData As New GetDataClass
+        Dim listOfData = getData.getListOfTablesGroup
+        result.ListOfData = listOfData
+        result.Success = listOfData.Count > 0
+    Catch ex As Exception
+
+    End Try
+
+    Return result
+End Function
