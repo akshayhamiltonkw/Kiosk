@@ -1,4 +1,6 @@
 const db = require("../database");
+const { TablePositions, qMapStatus } = require(".././constant/tables");
+const axios = require("axios");
 
 // const insideSeating=async(req,res)=>{
 
@@ -22,70 +24,41 @@ const db = require("../database");
 
 // }
 
+// {
+//   "chairs":"10",
+//   "area":"smoking",
+//   "partyType":"family",
+//   "seatingArea":"outside",
+//     "name":"akshay",
+//   "phone":9766619238
+// }
+
 const getInLineKiosk = async (req, res) => {
   try {
-    const { chairs, area, partyType, seatingArea, name, phone } = req.body;
-
-    if (!chairs) {
-      return res.status(400).json({
-        status: false,
-        message: "Invalid chair details",
-        data: [],
-      });
-    }
-    if (!area) {
-      return res.status(400).json({
-        status: false,
-        message: "Invalid area details",
-        data: [],
-      });
-    }
-    if (!partyType) {
-      return res.status(400).json({
-        status: false,
-        message: "Invalid party type",
-        data: [],
-      });
-    }
-    if (!seatingArea) {
-      return res.status(400).json({
-        status: false,
-        message: "choose proper seating details",
-        data: [],
-      });
-    }
-    if (!name) {
-      return res.status(400).json({
-        status: false,
-        message: "enter user name",
-        data: [],
-      });
-    }
-    if (!phone) {
-      return res.status(400).json({
-        status: false,
-        message: "enter phone details",
-        data: [],
-      });
-    }
-
-    //     let  sql="INSERT INTO usersAkshay(chairs,area,partyType,seatingArea,name,phone) VALUES ?";
-    // let values=[[chairs,area,partyType,seatingArea,name,phone]];
+    const { restId } = req.body;
+    console.log(restId);
+    let isActive = 1 || 0;
     const pool = db.poolPromise;
-    console.log(pool);
-    const result = await pool
+
+    const Restaurant = await pool
       .request()
       .query(
-        "INSERT INTO usersAkshay(chairs,area,partyType,seatingArea,name,phone) VALUES ?",
-        [[chairs, area, partyType, seatingArea, name, phone]]
+        `SELECT * FROM [dbo].[tblRestaurants] WHERE id='${restId}' and isActive='${isActive}';`
       );
-    //if(result) return res.send({result:result})
-
-    res.send({ message: result });
+    // const pool = await db.poolPromise;
+    // const result = await pool
+    //   .request()
+    //   .query(`SELECT * FROM [dbo].[tblUsers] where userName='${userName}';`);
+    // ternary operator to check the eligibility to vote
+    // let age = 15;
+    // let result =
+    //     (age >= 18) ? "You are eligible to vote." : "You are not eligible to vote yet";
+    // console.log(result);
+    res.status(200).send({ message: Restaurant });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Internal server error ",
+      message: "Internal server error hhh",
       error,
     });
   }
@@ -95,7 +68,72 @@ const getInLineKiosk = async (req, res) => {
 
 // }
 
-module.exports = getInLineKiosk;
+/*
+Function used to add Queue
+*/
+const createQueue = async (req, res) => {
+  try {
+    let { chairs, note, clientId, tablePosition, tagId, subTagId, client } =
+      req.body;
+
+    if (!chairs) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid chair details",
+        data: [],
+      });
+    }
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Client details",
+        data: [],
+      });
+    }
+    if (!tablePosition) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid table position",
+        data: [],
+      });
+    } else {
+      if (tablePosition.toLowerCase() === "inside") {
+        tablePosition = TablePositions.inside;
+      } else if (tablePosition.toLowerCase() === "outside") {
+        tablePosition = TablePositions.outside;
+      } else {
+        tablePosition = TablePositions.any;
+      }
+    }
+    if (!client) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Client details",
+        data: [],
+      });
+    }
+
+    const userId = req["host-details"].user_id;
+    const restId = req["host-details"].branch_id;
+    const pool = await db.poolPromise;
+    let query = `INSERT into tblQueue(rest_id, maxGroup, minmumGroup, note, client_id, position, QueueTagID, QueueSubTagID, status, createdUser) VALUES(${restId}, ${chairs}, ${chairs}, '${note}', ${clientId}, ${tablePosition}, ${tagId}, ${subTagId}, ${QueueStatus.Queued}, ${userId})`;
+
+    const result = await pool.request().query(query);
+    return res.status(200).json({
+      message: "success",
+      data: [],
+      sucess: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      data: {},
+    });
+  }
+};
+
+module.exports = { createQueue, getInLineKiosk };
 // {insideSeating,checkYourTurn,
 //   getInLineKiosk
 //   ,outSideSeating}

@@ -21,6 +21,7 @@ const auth = async (req, res, next) => {
       );
     if (result?.recordset?.length > 0) {
       req["kiosk"] = result.recordset[0];
+      
       next();
     } else {
       return res.json({
