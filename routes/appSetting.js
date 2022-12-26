@@ -1,13 +1,9 @@
 const router = require("express").Router();
-const auth = require("../middleware/authentication");
-const appSetting = require("../controllers/appSettings");
+const { appSetting, streamVideo } = require("../controllers/appSettings");
 const path = require("path");
 
-router.post("/appSetting", (req, res) => {
-  const filePath = path.join(
-    "C:/Users/AKSHAY/OneDrive/Desktop/Requeue-kiosk/userUploads",
-    `video.MP4`
-  );
+router.post("/uploads/appSetting", (req, res) => {
+  const filePath = path.join(__dirname, `video.MP4`);
   appSetting(req, filePath)
     .then((path) =>
       res.status(200).send({ status: "file uploaded successfully", path })
@@ -16,5 +12,7 @@ router.post("/appSetting", (req, res) => {
       res.status(500).send({ status: "Internal server error", err })
     );
 });
+
+router.get("/uploads", streamVideo);
 
 module.exports = router;
