@@ -1,8 +1,10 @@
 const fs = require("fs");
 const handleDb = require("../config/handler");
 const path = require("path");
+const UUID = require("uuid").v4;
+const { poolPromise } = require("../database");
 
-const appSetting = async (req, filePath) => {
+const appSetting = async (req, res) => {
   return new Promise((resolve, reject) => {
     const stream = fs.createWriteStream(filePath);
     // With the open - event, data will start being written
@@ -34,6 +36,38 @@ const appSetting = async (req, filePath) => {
       reject(err);
     });
   });
+};
+const AppSetting = async (req, res) => {
+  const { imageId, videoId, ColorCode } = req.query;
+  console.log(req.file);
+
+  try {
+    const Kiosk_appSetting = await poolPromise
+      .then((response) =>
+        response.query(`SELECT * FROM [dbo].[Kiosk_appSetting] ;`)
+      )
+      .catch((error) => res.status(400).json({ error: error.message }));
+    const filePath = path.join(__dirname, `video.MP4`);
+    console.log(Kiosk_appSetting);
+
+    console.log(UUID());
+
+    if (imageId) {
+    } else if (videoId) {
+    } else if (ColorCode) {
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+  //console.log(image, video, ColorCode);
+
+  // appSetting(req, filePath)
+  //   .then((path) =>
+  //     res.status(200).send({ status: "file uploaded successfully", path })
+  //   )
+  //   .catch((err) =>
+  //     res.status(500).send({ status: "Internal server error", err })
+  //   );
 };
 
 function getFile(file_name, callback) {
@@ -84,4 +118,4 @@ const streamVideo = function (req, res) {
   getFile(file_name, handleFile);
 };
 
-module.exports = { appSetting, streamVideo };
+module.exports = { AppSetting, streamVideo };
