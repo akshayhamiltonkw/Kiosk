@@ -3,8 +3,9 @@ const handleDb = require("../config/handler");
 const path = require("path");
 const UUID = require("uuid").v4;
 const { poolPromise } = require("../database");
+let formidable = require("formidable");
 
-const appSetting = async (req, res) => {
+const appSetting = async (req, filePath) => {
   return new Promise((resolve, reject) => {
     const stream = fs.createWriteStream(filePath);
     // With the open - event, data will start being written
@@ -38,36 +39,53 @@ const appSetting = async (req, res) => {
   });
 };
 const AppSetting = async (req, res) => {
-  const { imageId, videoId, ColorCode } = req.query;
-  console.log(req.file);
+  // const { imageId, videoId, ColorCode } = req.query;
+  // console.log(req.files);
+  // // let form = new formidable.IncomingForm();
+  // // form.parse(req, (err, field, file) => {
+  // //   if (err) {
+  // //     return res.status(404).json({ message: err.message });
+  // //   }
+  // //   if (file) {
+  // //     console.log(file);
+  // //   ]
+  // //     res.status(200).json({ message: file });
+  // //   } else {
+  // //     res.status(404).json({ message: "file not found" });
+  // //   }
+  // // });
 
-  try {
-    const Kiosk_appSetting = await poolPromise
-      .then((response) =>
-        response.query(`SELECT * FROM [dbo].[Kiosk_appSetting] ;`)
-      )
-      .catch((error) => res.status(400).json({ error: error.message }));
-    const filePath = path.join(__dirname, `video.MP4`);
-    console.log(Kiosk_appSetting);
+  // // let fileName = req.file.originalname;
+  // // let filetype = req.file.mimetype;
+  // // console.log(fileName, filetype);
 
-    console.log(UUID());
+  // try {
+  //   // const Kiosk_appSetting = await poolPromise
+  //   //   .then((response) =>
+  //   //     response.query(`SELECT * FROM [dbo].[Kiosk_appSetting] ;`)
+  //   //   )
+  //   //   .catch((error) => res.status(400).json({ error: error.message }));
+  const filePath = path.join(__dirname, `video.MP4`);
+  //   //console.log(Kiosk_appSetting);
 
-    if (imageId) {
-    } else if (videoId) {
-    } else if (ColorCode) {
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-  //console.log(image, video, ColorCode);
+  //   console.log(UUID());
 
-  // appSetting(req, filePath)
-  //   .then((path) =>
-  //     res.status(200).send({ status: "file uploaded successfully", path })
-  //   )
-  //   .catch((err) =>
-  //     res.status(500).send({ status: "Internal server error", err })
-  //   );
+  //   if (imageId) {
+  //   } else if (videoId) {
+  //   } else if (ColorCode) {
+  //   }
+  // } catch (err) {
+  //   res.status(500).json({ error: err.message });
+  // }
+  // //console.log(image, video, ColorCode);
+
+  appSetting(req, filePath)
+    .then((path) =>
+      res.status(200).send({ status: "file uploaded successfully", path })
+    )
+    .catch((err) =>
+      res.status(500).send({ status: "Internal server error", err })
+    );
 };
 
 function getFile(file_name, callback) {
@@ -118,4 +136,4 @@ const streamVideo = function (req, res) {
   getFile(file_name, handleFile);
 };
 
-module.exports = { AppSetting, streamVideo };
+module.exports = { appSetting, streamVideo };

@@ -5,7 +5,7 @@ const { fetchClientInfoById } = require("../middleware/common");
 // const moment = require("moment");
 
 // let date = moment().format("YYYY-MM-DD, hh:mm:ss.000");
-const Count = async (req, res) => {
+const getInlineKiosk = async (req, res) => {
   try {
     const { restId, client_Id } = req.body;
     const pool = poolPromise;
@@ -292,4 +292,4 @@ const getQueue = async (req, res) => {
   }
 };
 
-module.exports = { Count, getQueue };
+module.exports = { getInlineKiosk, getQueue };
