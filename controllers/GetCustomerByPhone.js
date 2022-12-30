@@ -85,6 +85,7 @@ const GetCustomerByPhone = async (req, res) => {
   });
 };
 
+//get queue details by client phone number
 const GetQueueByPhoneAndRest = async (req, res) => {
   const { phone, restId } = req.query;
 
@@ -99,7 +100,6 @@ const GetQueueByPhoneAndRest = async (req, res) => {
       `SELECT * FROM [dbo].[tblClient] WHERE client_phone='${phone}' and restId='${restId}';`
     );
   let clientId = client["recordset"][0].client_id;
-  console.log(client);
   const queue = await pool
     .request()
     .query(
