@@ -6,19 +6,15 @@ const queue = require("./routes/queue");
 const country = require("./routes/country");
 const foodManu = require("./routes/foodManu");
 const appSetting = require("./routes/appSetting");
-const bodyParser = require("body-parser");
 const GetCustomerAndQueue = require("./routes/GetCustomerByPhone");
 const getTableGroups = require("./routes/getTableGroups");
 const createUniqID = require("./routes/createUniqID");
 const getRestaurantStatistic = require("./routes/getRestaurantStatistic");
-const fileUpload = require("express-fileupload");
 
 const app = express();
-app.use(fileUpload());
+//app.use(fileUpload());
 app.use(cors());
 app.use(express.json());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use("/kiosk/account", auth);
 app.use("/kiosk/country", country);

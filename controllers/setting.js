@@ -1,75 +1,9 @@
-const path = require("path");
-const UUID = require("uuid").v4;
-const { poolPromise } = require("../database");
-const { stat, createReadStream, createWriteStream } = require("fs");
-const { promisify } = require("util");
-const multiparty = require("multiparty");
-const filename =
-  "C:/Users/Admin/Desktop/Kiosk-requeue/Kiosk/mp4/Black_Panther_Wakanda_Forever.mkv";
-
-//"C:/Users/Admin/Desktop/Kiosk-requeue/Kiosk/mp4/O Yaara - Sawai Bhatt-(Hd9video).mp4";
-
-const fileInfo = promisify(stat);
-
-const sendVideo = async (req, res) => {
-  const { size } = await fileInfo(filename);
-  console.log(size);
-  const range = req.headers.range;
-  if (range) {
-    let [start, end] = range.replace(/bytes=/, "").split("-");
-    start = parseInt(start, 10);
-    end = end ? parseInt(end, 10) : size - 1;
-    console.log(start, end);
-
-    res.writeHead(206, {
-      "Content-Range": `bytes ${start}-${end}/${size}`,
-      "Accept-Ranges": "bytes",
-      "Content-Length": start - end + 1,
-      "Content-Type": "video/mp4",
-    });
-
-    createReadStream(filename, { start, end }).pipe(res);
-  } else {
-    res.writeHead(200, {
-      "Content-Length": size,
-      "Content-Type": "video/mp4",
-    });
-    createReadStream(filename).pipe(res);
-  }
-};
-
-const UploadVideo = async (req, res) => {
-  try {
-    if (req.method === "POST") {
-      let form = new multiparty.Form();
-      form.on("part", (part) => {
-        console.log(part.headers["content-type"]);
-        const ext = path.extname(part.filename);
-        console.log(ext);
-        part
-          .pipe(
-            createWriteStream(
-              `C:/Users/Admin/Desktop/Kiosk-requeue/Kiosk/uploads/${part.filename}`
-            )
-          )
-          .on("close", () => {
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(`video uploded successfully`);
-          });
-      });
-      form.parse(req);
-    }
-  } catch (error) {
-    res.status(500).send({ message: error.message });
-  }
-};
-
-const appSettings = async (req, res) => {
+const setting = async (req, res) => {
   console.log("hello world");
   //, video, colorCode
   const { branchId, userName, image } = req.body;
   console.log(branchId, userName, image);
-  res.status(200).send({ message: req.body });
+  res.status(200).send({ message: branchId });
   // try {
   //   const pool = await poolPromise;
   //   const branch = await pool
@@ -230,16 +164,5 @@ const appSettings = async (req, res) => {
   //   res.status(500).send({ message: error.message });
   // }
 };
-const getAppSetting = async (req, res) => {
-  try {
-    const pool = await db.poolPromise;
-    const result = await pool
-      .request()
-      .query(`SELECT * FROM [dbo].[Kiosk_appSetting];`);
-    res.status(200).send({ data: result });
-  } catch (error) {
-    res.status(404).send({ message: "internal server error" });
-  }
-};
 
-module.exports = { sendVideo, UploadVideo, appSettings };
+module.exports = { setting };
