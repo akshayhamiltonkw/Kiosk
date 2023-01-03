@@ -2,9 +2,19 @@ const { poolPromise } = require("../database");
 const { QueueStatus, CancelReason } = require("../../Kiosk/constant/queue");
 const { TablePositions, qMapStatus } = require(".././constant/tables");
 const { fetchClientInfoById } = require("../middleware/common");
-// const moment = require("moment");
+const d = new Date();
+const b = new Date();
+let year = d.getFullYear();
+let month = d.getMonth() + 1;
+let day = d.getDate();
+let hrs = b.getHours();
+let min = b.getMinutes();
+let sec = b.getSeconds();
+let date =
+  year + "-" + month + "-" + day + " " + hrs + ":" + min + ":" + sec + ".000 ";
 
-// let date = moment().format("YYYY-MM-DD, hh:mm:ss.000");
+console.log(date);
+
 const getInlineKiosk = async (req, res) => {
   try {
     const { restId, client_Id } = req.body;
@@ -29,19 +39,6 @@ const getInlineKiosk = async (req, res) => {
     //   });
     // });
 
-    // exports.QueueStatus = {
-    //   Queued: 0,
-    //   ReQueued: 1,
-    //   Seated: 2,
-    //   Closed: 3,
-    //   Canceled: 4,
-    //   Rest_Canceled: 5,
-    //   Rest_ReQueued: 6,
-    //   Rest_Queued: 7,
-    //   RestHold: 8,
-    //   Hold: 9,
-    // };
-    //console.log(Queue);
     let active = Rest.recordsets[0][0].isActive === true;
     let open = Rest.recordsets[0][0].isOpen === true;
     let isFull = Rest.recordsets[0][0].isFull === false;
@@ -76,7 +73,98 @@ const getInlineKiosk = async (req, res) => {
     });
   }
 };
+async function checkInLine(req, res) {
+  try {
+    const pool = await poolPromise;
+    let data = await pool
+      .request()
+      .query(
+        "SELECT TOP (1000) * FROM dbo.tblQueue where status=0  order by  createdDate  DESC"
+      );
+    let id = data["recordset"].map((recordset) => recordset.id);
+    let allId = [];
+    allId.push(id);
+    return res.status(200).json({
+      message: "success",
+      yourData: allId,
+      sucess: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      data: {},
+    });
+  }
+}
 
+const Addqueue = async (req, res) => {
+  try {
+    let {
+      chairs,
+      note,
+      clientId,
+      tablePosition,
+      tagId,
+      subTagId,
+      client,
+      userId,
+      restId,
+    } = req.body;
+    if (!chairs) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid chair details",
+        data: [],
+      });
+    }
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Client details",
+        data: [],
+      });
+    }
+    if (!tablePosition) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid table position",
+        data: [],
+      });
+    } else {
+      if (tablePosition.toLowerCase() === "inside") {
+        tablePosition = TablePositions.inside;
+      } else if (tablePosition.toLowerCase() === "outside") {
+        tablePosition = TablePositions.outside;
+      } else {
+        tablePosition = TablePositions.any;
+      }
+    }
+    if (!client) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Client details",
+        data: [],
+      });
+    }
+
+    const pool = await poolPromise;
+    let query = `INSERT into [tblQueue](rest_id, maxGroup, minmumGroup, note, client_id, createdDate, position, QueueTagID, QueueSubTagID, status, createdUser) VALUES('${restId}', '${chairs}', '${chairs}', '${note}', '${clientId}','${date}', '${tablePosition}', '${tagId}', '${subTagId}', '${QueueStatus.Queued}', '${userId}');`;
+
+    const result = await pool.request().query(query);
+    return res.status(200).json({
+      message: "success",
+      data: [],
+      sucess: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      data: {},
+    });
+  }
+};
 const getQueue = async (req, res) => {
   try {
     const id = req.body.branch_id;
@@ -292,4 +380,4 @@ const getQueue = async (req, res) => {
   }
 };
 
-module.exports = { getInlineKiosk, getQueue };
+module.exports = { getInlineKiosk, getQueue, Addqueue, checkInLine };

@@ -1,6 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const app = express();
+//app.use(fileUpload());
+app.use(cors());
+app.use(express.json());
 const auth = require("./routes/authentication");
 const queue = require("./routes/queue");
 const country = require("./routes/country");
@@ -10,11 +14,6 @@ const GetCustomerAndQueue = require("./routes/GetCustomerByPhone");
 const getTableGroups = require("./routes/getTableGroups");
 const createUniqID = require("./routes/createUniqID");
 const getRestaurantStatistic = require("./routes/getRestaurantStatistic");
-
-const app = express();
-//app.use(fileUpload());
-app.use(cors());
-app.use(express.json());
 
 app.use("/kiosk/account", auth);
 app.use("/kiosk/country", country);

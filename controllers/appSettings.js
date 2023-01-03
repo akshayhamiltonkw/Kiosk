@@ -41,11 +41,13 @@ const sendVideo = async (req, res) => {
 const UploadVideo = async (req, res) => {
   try {
     if (req.method === "POST") {
+      const { branchId } = req.body;
+      console.log(branchId);
       let form = new multiparty.Form();
       form.on("part", (part) => {
         console.log(part.headers["content-type"]);
-        const ext = path.extname(part.filename);
-        console.log(ext);
+        // const ext = path.extname(part.filename);
+        // console.log(ext);
         part
           .pipe(
             createWriteStream(
