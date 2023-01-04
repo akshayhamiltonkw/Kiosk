@@ -75,17 +75,22 @@ const getInlineKiosk = async (req, res) => {
 };
 async function checkInLine(req, res) {
   try {
+    const { client_Id } = req.body;
     const pool = await poolPromise;
     let data = await pool
       .request()
       .query(
-        "SELECT TOP (1000) * FROM dbo.tblQueue where status=0  order by  createdDate  DESC"
+        "SELECT TOP (1000) * FROM dbo.tblQueue where status=0  order by  createdDate  ASC"
       );
-    let id = data["recordset"].map((recordset) => recordset.id);
+    let id = data["recordset"].map((recordset) => recordset.client_id);
     let allId = [];
-    allId.push(id);
+    let ID1 = allId.push(id);
+    console.log(allId);
+    let getLine = allId[0].indexOf(client_Id);
+    console.log(getLine);
     return res.status(200).json({
       message: "success",
+      line: getLine,
       yourData: allId,
       sucess: true,
     });
@@ -149,7 +154,9 @@ const Addqueue = async (req, res) => {
     }
 
     const pool = await poolPromise;
-    let query = `INSERT into [tblQueue](rest_id, maxGroup, minmumGroup, note, client_id, createdDate, position, QueueTagID, QueueSubTagID, status, createdUser) VALUES('${restId}', '${chairs}', '${chairs}', '${note}', '${clientId}','${date}', '${tablePosition}', '${tagId}', '${subTagId}', '${QueueStatus.Queued}', '${userId}');`;
+    let query = `INSERT into [tblQueue](rest_id, maxGroup, minmumGroup, note, client_id, createdDate, position, QueueTagID, QueueSubTagID, status, createdUser,channel) VALUES('${restId}', '${chairs}', '${chairs}', '${note}', '${clientId}','${date}', '${tablePosition}', '${tagId}', '${subTagId}', '${
+      QueueStatus.Queued
+    }', '${userId}' ,'${0}');`;
 
     const result = await pool.request().query(query);
     return res.status(200).json({

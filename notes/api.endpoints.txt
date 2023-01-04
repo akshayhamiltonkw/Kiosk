@@ -5,9 +5,6 @@
 //object caching
 
 
-request headers
-res.send(req.rawHeaders)
-
 
 kiosk
 o	User:
@@ -216,53 +213,7 @@ GetQueueByPhoneAndRest="GetQueueByPhoneAndRest"
     End Function
 
 
-//GetRestaurantStatistic="GetRestaurantStatistic"
- <OperationContract()>
-    <WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
-    Public Function GetRestaurantStatistic() As RestaurantQueueStatisticResponse
-        Dim apiResp As New RestaurantQueueStatisticResponse
-        Try
 
-            If Not apiResp.Authorized() Then Return apiResp
-
-            Dim userObj = GetUserObj()
-            Dim restObj = userObj.GetRestaurant()
-            Dim result As New RestaurantQueueStatistic(restObj)
-
-            apiResp.Statistic = result
-            apiResp.Success = result.Id > 0
-
-        Catch ex As Exception
-
-        End Try
-        Return apiResp
-    End Function
-
-
-
-//GetCustomerByPhone="GetCustomerByPhone"
- <OperationContract()>
-    <WebInvoke(Method:="GET", ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>
-    Public Function GetCustomerByPhone(ByVal phone As String, ByVal country As Integer) As CustomerResponse
-        Dim result As New CustomerResponse
-        Try
-
-            If Not result.Authorized Then Return result
-            If phone = "" Then Return result
-
-            If phone <> "" Then phone = phone.Replace("'", "")
-
-            Dim clientObj = DataHelper.getClientByPhoneNumber(phone, country)
-            result.Customer = clientObj
-            result.Success = clientObj.id > 0
-        Catch ex As Exception
-        End Try
-
-        Return result
-    End Function
-
-
-    
 //GetInLineHost="GetInLineHost"
   <OperationContract()>
     <WebInvoke(Method:="POST", BodyStyle:=WebMessageBodyStyle.WrappedRequest, ResponseFormat:=WebMessageFormat.Json, RequestFormat:=WebMessageFormat.Json)>

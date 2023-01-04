@@ -26,3 +26,34 @@ exports.CancelReason = {
   My_host_asked_me_To_cancel: 11,
   changed_my_maind: 12,
 };
+
+exports.QueueType = {
+  Normal: 0,
+  Hold: 1,
+};
+
+exports.QueueFinalStatus = {
+  Confirmed: 0,
+  Canceled: 1,
+  OnHold: 2,
+  Seated: 3,
+};
+
+exports.QueueCategory = {
+  Both: 0,
+  Bachelor: 1,
+  Family: 2,
+};
+
+exports.CreatedMethod = {
+  Host: 0,
+  IOS: 1,
+  Android: 2,
+  Kiosk: 3,
+};
+
+exports.CallStatus = {
+  NotCalled: 0,
+  Answered: 1,
+  NotAnswered: 2,
+};

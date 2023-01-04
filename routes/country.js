@@ -5,8 +5,8 @@ const {
 } = require("../controllers/getAllCountries");
 const auth = require("../middleware/authentication");
 
-router.get("/GetCountries", auth,fetchAllActiveCountries);
+router.get("/GetCountries", auth, fetchAllActiveCountries);
 
-router.get("/GetAllCountries", auth,fetchAllCountries);
+router.get("/GetAllCountries", auth, fetchAllCountries);
 
 module.exports = router;

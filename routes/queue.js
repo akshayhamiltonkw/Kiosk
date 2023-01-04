@@ -6,6 +6,7 @@ const {
   Addqueue,
   checkInLine,
 } = require("../controllers/newqueue");
+const auth = require("../middleware/authentication");
 
 router.post("/createQueue", Addqueue);
 router.post("/getInlineKiosk", getInlineKiosk);
